@@ -46,11 +46,15 @@ Zodiac scans an APK against **400+ detection patterns** across **23 categories**
 
 ```bash
 pkg update && pkg upgrade
+
 pkg install -y git unzip aapt openssl curl
 
 git clone https://github.com/Vandal/zodiac.git ~/zodiac
+
 cd ~/zodiac
+
 chmod +x zodiac.sh
+
 ./zodiac.sh install
 ```
 
@@ -58,9 +62,13 @@ chmod +x zodiac.sh
 
 ```bash
 sudo apt install -y unzip aapt openssl curl git
+
 git clone https://github.com/Vandal/zodiac.git ~/zodiac
+
 cd ~/zodiac
+
 chmod +x zodiac.sh
+
 sudo ./zodiac.sh install
 ```
 
@@ -77,16 +85,16 @@ zodiac help
 
 ```bash
 # Download an APK
-zodiac install https://f-droid.org/F-Droid.apk
+zodiac install <url>
 
 # Full scan
-zodiac hunt F-Droid.apk
+zodiac hunt <apk name>
 
 # Quick scan
-zodiac fast F-Droid.apk
+zodiac fast <apk name>
 
 # Save a full report
-zodiac report F-Droid.apk
+zodiac report <apk name>
 ```
 
 ---
