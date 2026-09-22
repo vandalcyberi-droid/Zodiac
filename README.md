@@ -1,829 +1,408 @@
-# ZODIAC
+# Zodiac
 
-APK Reverse Engineering · Threat Intelligence · Security Analysis
+**APK Reverse Engineering & Threat Analysis Toolkit**
 
-<p align="center">
-  <img src="https://img.shields.io/badge/version-8.0.0-111111?style=for-the-badge&logo=android&logoColor=white" alt="Version">
-  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20Termux-111111?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
-  <img src="https://img.shields.io/badge/language-Bash-111111?style=for-the-badge&logo=gnu-bash&logoColor=white" alt="Bash">
-  <img src="https://img.shields.io/badge/focus-APK%20Security-111111?style=for-the-badge&logo=android&logoColor=white" alt="APK Security">
-</p><p align="center">
-  <b>ZODIAC</b> is a command-line toolkit for inspecting Android APKs,
-  extracting security-relevant artifacts, and performing pattern-based
-  threat and application-security analysis.
-</p><p align="center">
-  <i>One APK. One command line. A large amount of security-relevant evidence.</i>
-</p>---
+A pure-Bash APK analysis tool that runs natively on Termux and Linux. No Python, no heavy dependencies — just `bash`, `unzip`, and the standard Unix toolchain.
 
-Table of Contents
-
-- "Overview" (#overview)
-- "What ZODIAC Does" (#what-zodiac-does)
-- "Capabilities" (#capabilities)
-- "Command Map" (#command-map)
-- "Installation" (#installation)
-- "Quick Start" (#quick-start)
-- "Examples" (#examples)
-- "Scan Modes" (#scan-modes)
-- "Output & Reports" (#output--reports)
-- "Environment Variables" (#environment-variables)
-- "Dependencies" (#dependencies)
-- "Detection Philosophy" (#detection-philosophy)
-- "False Positives" (#false-positives)
-- "Limitations" (#limitations)
-- "Responsible Use" (#responsible-use)
-- "Project Structure" (#project-structure)
-- "Roadmap" (#roadmap)
-- "License" (#license)
+Zodiac scans an APK against **400+ detection patterns** across **23 categories** and produces structured findings with severity levels, risk scoring, and exportable reports.
 
 ---
 
-Overview
+## Table of Contents
 
-ZODIAC is a Bash-based Android APK analysis toolkit designed for researchers, mobile-security analysts, malware triage, reverse engineers, and security learners.
-
-It combines several common APK inspection workflows behind a single command-line interface:
-
-             ┌──────────────────────────┐
-             │          APK              │
-             └────────────┬─────────────┘
-                          │
-             ┌────────────▼─────────────┐
-             │         ZODIAC            │
-             │   Analysis Orchestrator   │
-             └────────────┬─────────────┘
-                          │
-       ┌──────────────────┼──────────────────┐
-       │                  │                  │
-       ▼                  ▼                  ▼
-   Metadata            Artifacts          Patterns
-       │                  │                  │
-       ├─ Manifest        ├─ URLs            ├─ Threats
-       ├─ Certificate     ├─ IPs             ├─ Vulns
-       ├─ Permissions     ├─ Domains         ├─ Secrets
-       └─ Components      ├─ APIs            ├─ Crypto
-                          ├─ Strings         └─ Native
-                          └─ Paths
-
-The goal is not to replace a full reverse-engineering environment.
-
-Instead, ZODIAC provides a fast first-pass analysis layer that helps answer:
-
-- What is inside this APK?
-- What permissions and components does it expose?
-- Which network indicators are present?
-- Are there suspicious strings, endpoints, secrets, or cloud references?
-- Which security-sensitive APIs and patterns appear in the application?
-- Where should deeper manual analysis begin?
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [Detection Categories](#detection-categories)
+- [Advanced Features](#advanced-features)
+- [Environment Variables](#environment-variables)
+- [Examples](#examples)
+- [Requirements](#requirements)
+- [Legal](#legal)
 
 ---
 
-What ZODIAC Does
+## Features
 
-ZODIAC currently groups its functionality into several analysis areas.
-
-APK Discovery
-
-Inspect the basic structure and metadata of an APK.
-
-info
-manifest
-cert
-permissions
-
-Network Intelligence
-
-Extract network-related indicators and endpoints.
-
-net
-urls
-ips
-emails
-domains
-api
-paths
-strings
-
-Secrets & Services
-
-Search application contents for potentially sensitive artifacts.
-
-secrets
-cloud
-auth
-payment
-comm
-
-Threat Analysis
-
-Look for patterns associated with malware and suspicious application behavior.
-
-mal
-vuln
-bypass
-track
-
-Application Security
-
-Inspect security-sensitive implementation patterns.
-
-offensive
-crypto
-decrypt
-native
-components
-
-Combined Analysis
-
-Run broader analysis workflows.
-
-hunt
-fast
-report
+- **Pure Bash** — no Python, no Node, no JVM required for the core scanner
+- **Termux-native** — built for Android terminal workflows
+- **400+ regex patterns** covering network, secrets, malware, crypto, vulnerabilities, and more
+- **Severity classification** — CRITICAL / HIGH / MEDIUM / LOW / INFO
+- **Risk scoring** — 0–100 score with verdict
+- **Entropy analysis** — detect packed or encrypted sections
+- **HTML reports** — dark-themed, self-contained
+- **MITRE ATT&CK Mobile mapping** — auto-map findings to techniques
+- **JWT decoder** — decode tokens found in the APK
+- **Batch mode** — scan an entire folder
+- **Caching** — extraction is cached by SHA256
+- **No hidden network calls** — all analysis is local (VirusTotal is opt-in)
 
 ---
 
-Capabilities
+## Installation
 
-🔎 APK Metadata
+### Termux
 
-- APK identification
-- SHA-256 calculation
-- Android manifest inspection
-- certificate information
-- permission enumeration
-- component inspection
+```bash
+pkg update && pkg upgrade
+pkg install -y git unzip aapt openssl curl
 
-🌐 Network Analysis
-
-Detection and extraction of:
-
-- URLs
-- IPv4 addresses
-- domains
-- email addresses
-- API endpoints
-- file/network paths
-- common REST / GraphQL / gRPC indicators
-
-🔐 Secrets Detection
-
-Pattern-based searches for artifacts such as:
-
-- API keys
-- tokens
-- passwords
-- private-key indicators
-- cloud credentials
-- JWT-like structures
-- authentication-related material
-
-«Matches are indicators for investigation, not proof that a credential is valid or usable.»
-
-☁ Cloud & Service Detection
-
-The toolkit includes patterns for common ecosystems such as:
-
-- AWS
-- Google Cloud
-- Azure
-- Firebase
-- authentication frameworks
-- payment services
-- communication platforms
-
-🦠 Threat Indicators
-
-ZODIAC can flag patterns associated with:
-
-- command-and-control infrastructure
-- reverse shells
-- RAT-like functionality
-- ransomware-related strings
-- cryptomining indicators
-- suspicious shell execution
-- native execution
-- persistence-related artifacts
-- surveillance/monitoring terminology
-
-🛡 Application Security Patterns
-
-The vulnerability-oriented checks cover areas including:
-
-- SQL-related APIs
-- command execution
-- path traversal indicators
-- deserialization
-- intent handling
-- WebView configuration
-- SSL/TLS handling
-- exported components
-- cleartext traffic
-- insecure cryptographic usage
-- weak randomness
-- file-access patterns
-- native security-sensitive APIs
-
-🔬 Native Analysis
-
-Patterns related to:
-
-- JNI
-- ".so" libraries
-- syscalls
-- "ptrace"
-- memory mapping
-- executable memory
-- native process execution
-- anti-debugging indicators
-
----
-
-Command Map
-
-Command| Purpose
-"list"| List available APKs
-"install <url>"| Download an APK
-"info <apk>"| APK information + SHA-256
-"manifest <apk>"| Inspect "AndroidManifest.xml"
-"cert <apk>"| Certificate information
-"permissions <apk>"| Permission analysis
-"net <apk>"| Network-oriented scan
-"urls <apk>"| Extract URLs
-"ips <apk>"| Extract IP addresses
-"emails <apk>"| Extract email addresses
-"domains <apk>"| Extract domains
-"api <apk>"| Search API indicators
-"paths <apk>"| Extract paths
-"strings <apk>"| Extract strings
-"secrets <apk>"| Search for secret-like artifacts
-"cloud <apk>"| Cloud-service indicators
-"auth <apk>"| Authentication indicators
-"payment <apk>"| Payment/crypto indicators
-"comm <apk>"| Communication-service indicators
-"mal <apk>"| Malware/threat pattern scan
-"vuln <apk>"| Security-pattern scan
-"bypass <apk>"| Bypass-related indicators
-"track <apk>"| Tracking SDK/pattern detection
-"offensive <apk>"| Attack-surface/security-sensitive patterns
-"crypto <apk>"| Cryptography analysis
-"decrypt <apk>"| Decryption-related analysis
-"native <apk>"| Native/JNI analysis
-"db <apk>"| Database indicators
-"components <apk>"| Component/export analysis
-"hunt <apk>"| Broad analysis
-"fast <apk>"| Quick analysis
-"report <apk>"| Generate a report
-"search <apk> <regex>"| Custom pattern search
-"unzip <apk>"| Extract APK
-"decompile <apk>"| Decompile using available tooling
-"clean"| Clear analysis cache
-"prompt"| Install optional shell prompt
-"version"| Display version
-
-Aliases are available for several commands.
-
-Run:
-
-zodiac help
-
-for the complete command reference.
-
----
-
-Installation
-
-1. Clone the repository
-
-git clone https://github.com/YOUR_USERNAME/zodiac.git
-cd zodiac
-
-2. Make the script executable
-
+git clone https://github.com/Vandal/zodiac.git ~/zodiac
+cd ~/zodiac
 chmod +x zodiac.sh
-
-3. Run
-
-./zodiac.sh help
-
-You can optionally install it into your PATH through the built-in installer:
-
 ./zodiac.sh install
+```
 
-After installation:
+### Linux
 
-zodiac version
-
----
-
-Termux
-
-ZODIAC can also be used in a Termux environment, provided the required utilities are available.
-
-Start with:
-
-pkg update
-pkg upgrade
-pkg install bash coreutils grep sed awk unzip file curl
-
-Then:
-
+```bash
+sudo apt install -y unzip aapt openssl curl git
+git clone https://github.com/Vandal/zodiac.git ~/zodiac
+cd ~/zodiac
 chmod +x zodiac.sh
-./zodiac.sh help
+sudo ./zodiac.sh install
+```
 
-Additional Android reverse-engineering tools such as JADX or apktool can be installed separately when deeper analysis is required.
+### Verify
+
+```bash
+zodiac version
+zodiac help
+```
 
 ---
 
-Quick Start
+## Quick Start
 
-Inspect an APK
+```bash
+# Download an APK
+zodiac install https://f-droid.org/F-Droid.apk
 
+# Full scan
+zodiac hunt F-Droid.apk
+
+# Quick scan
+zodiac fast F-Droid.apk
+
+# Save a full report
+zodiac report F-Droid.apk
+```
+
+---
+
+## Commands
+
+### Discovery
+
+| Command | Description |
+|---|---|
+| `zodiac list` | List available APKs |
+| `zodiac install <url>` | Download an APK |
+| `zodiac info <apk>` | Package info + SHA256 |
+| `zodiac manifest <apk>` | AndroidManifest.xml tree |
+| `zodiac cert <apk>` | Signature certificate |
+| `zodiac permissions <apk>` | Permission risk analysis |
+
+### Network
+
+| Command | Description |
+|---|---|
+| `zodiac net <apk>` | Full network scan |
+| `zodiac urls <apk>` | URLs only |
+| `zodiac ips <apk>` | IP addresses only |
+| `zodiac emails <apk>` | Emails only |
+| `zodiac domains <apk>` | Domains only |
+| `zodiac api <apk>` | REST / GraphQL / gRPC endpoints |
+| `zodiac paths <apk>` | File paths |
+| `zodiac strings <apk>` | Extracted strings |
+
+### Secrets & Cloud
+
+| Command | Description |
+|---|---|
+| `zodiac secrets <apk>` | Keys, tokens, passwords |
+| `zodiac cloud <apk>` | AWS / GCP / Azure / Firebase |
+| `zodiac auth <apk>` | JWT / OAuth / SAML / MFA |
+| `zodiac payment <apk>` | Stripe / PayPal / crypto |
+| `zodiac comm <apk>` | Telegram / Discord / Slack |
+
+### Malicious & Threat
+
+| Command | Description |
+|---|---|
+| `zodiac mal <apk>` | Full malicious scan |
+| `zodiac vuln <apk>` | Vulnerability patterns |
+| `zodiac bypass <apk>` | Bypass technique detection |
+| `zodiac track <apk>` | Tracking SDKs |
+
+### Offensive & Crypto
+
+| Command | Description |
+|---|---|
+| `zodiac offensive <apk>` | Attack pattern detection |
+| `zodiac attack-surface <apk>` | Exported components / IPC / WebView |
+| `zodiac deeplinks <apk>` | Deep-link audit |
+| `zodiac webview <apk>` | WebView audit |
+| `zodiac perm-risk <apk>` | Sensitive permission risk |
+| `zodiac labcheck <apk>` | Lab-only control detection |
+| `zodiac crypto <apk>` | Crypto & cipher analysis |
+| `zodiac decrypt <apk>` | Decryption analysis |
+| `zodiac native <apk>` | JNI / .so / syscalls |
+
+### System
+
+| Command | Description |
+|---|---|
+| `zodiac db <apk>` | SQLite / Room / Realm |
+| `zodiac components <apk>` | Exported components |
+
+### Advanced
+
+| Command | Description |
+|---|---|
+| `zodiac entropy <apk>` | Entropy analysis |
+| `zodiac risk <apk>` | Risk score 0–100 |
+| `zodiac html <apk>` | HTML report |
+| `zodiac jwt <apk>` | Decode JWT tokens |
+| `zodiac whois <apk>` | WHOIS + DNS + alive check |
+| `zodiac dns <apk>` | DNS lookup |
+| `zodiac mitre <apk>` | MITRE ATT&CK Mobile mapping |
+| `zodiac batch [dir]` | Analyze an entire folder |
+| `zodiac vt <apk>` | VirusTotal hash lookup |
+
+### Combined
+
+| Command | Description |
+|---|---|
+| `zodiac hunt <apk>` | Full scan (all categories) |
+| `zodiac fast <apk>` | Quick scan |
+| `zodiac report <apk>` | Save full report to file |
+| `zodiac audit <apk>` | Advanced static audit |
+
+### Utilities
+
+| Command | Description |
+|---|---|
+| `zodiac search <apk> <regex>` | Custom regex search |
+| `zodiac unzip <apk>` | Extract APK |
+| `zodiac decompile <apk>` | Decompile with jadx or apktool |
+| `zodiac clean` | Clear cache |
+| `zodiac prompt` | Install Kali-style prompt |
+| `zodiac version` | Show version |
+
+---
+
+## Detection Categories
+
+Zodiac searches APK contents across the following categories:
+
+**Network**
+HTTP/HTTPS, FTP, WebSocket, Intent URLs, Deep links, IPv4, IPv6, CIDR, Domains, Emails, MAC addresses, Tor .onion, I2P, Proxy configs, DNS servers, User agents, Port numbers, FTP credentials
+
+**API**
+REST paths, Base URLs, HTTP methods, Query params, gRPC services, Swagger/OpenAPI, GraphQL operations, Content-Types, API versions, Rate limits, CORS headers, Cookie names, X-Headers
+
+**Secrets**
+API keys, Bearer tokens, Access/Refresh/ID/Session tokens, Client/App secrets, Passwords, Usernames, Private/Public/SSH/PGP keys, Encryption keys, HMAC keys, Salt, IV/Nonce, Seed phrases, Base64 blobs, Hex strings, UUIDs, Env variables, .env entries, Connection strings, Hardcoded credentials, Basic Auth headers
+
+**Cloud**
+AWS Access/Secret/Session keys, S3 buckets, Regions, Firebase RTDB/Storage/Project, Google API keys, OAuth Client IDs, GCP service accounts, Azure Storage/Connection strings/Tenant IDs, Heroku, DigitalOcean, Cloudflare, Alibaba OSS/AccessKey, Tencent COS, Oracle Cloud
+
+**Auth**
+JWT tokens, JWT secrets, Basic Auth, OAuth URLs/scopes, Session IDs, Cookies, SAML, OpenID, CSRF tokens, API auth headers, PKCE, MFA/2FA, Captcha keys
+
+**Payment**
+Stripe (live/test/publishable/restricted), PayPal, Square, Braintree, Adyen, Razorpay, Bitcoin/Ethereum/Monero/Litecoin/Tron wallets, IBAN, SWIFT/BIC, Credit cards, CVV, Iranian Sheba, Iranian card numbers
+
+**Communication**
+Telegram bot tokens/URLs/chat IDs, Discord webhooks/bot tokens/invites, Slack tokens/webhooks, Twilio SIDs/Auth tokens, SendGrid, Mailgun, Mailchimp, AWS SES, WhatsApp, Signal, Matrix, Rocket.Chat, Mattermost
+
+**Malicious**
+Shell interpreters, chmod/chown, destructive commands, package install, process control, pipes to shell, Base64 pipes, su binary paths, Superuser apps, root managers, exploits/CVEs, Runtime.exec, ProcessBuilder, Reflection API, DexClassLoader, native lib loading, shellcode, JNI, JavaScript exec, SQL command exec, anti-debug, anti-VM, anti-emulator, anti-Frida, anti-Xposed, anti-Magisk, anti-Substrate, anti-hook, integrity checks, emulator artifacts, sandbox detection, time checks, environment checks, obfuscators, packers, VM obfuscation, Base64 decode, XOR decryption, cipher usage, SMS access, contacts, call logs, location tracking, camera, microphone, clipboard, screen capture, keylogger APIs, account access, calendar, sensors, file access, call audio, Bluetooth, browser history, WhatsApp/Telegram data, BOOT_COMPLETED, AlarmManager, JobScheduler, WorkManager, Device Admin, foreground services, auto-start, sync adapters, accessibility abuse, device admin abuse, notification listener, VPN service, overlay attacks, usage stats, input method, JS Bridge, JS enabled, WebView loading, file access WebView, SSL errors ignored, SSL pinning, trust all certs, hostname verifier, cleartext allowed, cryptominer, mining pools, wallet addresses, ransomware, file encryption, ransom notes, payment demands, RAT commands, backdoor hints, C2 patterns, botnet hints, keylogger
+
+**Vulnerabilities**
+SQL injection, raw SQL methods, command injection, path traversal, file path concat, deserialization, intent redirection, implicit intents, exported components, PendingIntent, WebView exploits, SSL issues, broadcast receivers, Zip Slip, XXE, race conditions, insecure crypto, weak randomness, hardcoded HTTP, debug enabled, backup enabled, task hijacking, StrandHogg, tapjacking, overlay attacks, insecure broadcast, content provider, file permissions, dynamic code load, WebView JS enabled, WebView file access, exported activity/service/receiver/provider
+
+**Bypass**
+SSL pinning bypass, root detection bypass, debug detection, integrity bypass, Frida detection, Xposed detection, Magisk detection, Substrate detection, emulator bypass, proxy detection, VPN detection, screen recording detection, screenshot detection, time tamper, location spoof, app cloning, anti-analysis
+
+**Crypto**
+AES (modes + padding), DES/3DES, RSA (padding), ECC/EC, RC4/ARC4, RC2, Blowfish, Twofish, ChaCha20, Salsa20, MD5, SHA family, SHA1, bcrypt/scrypt/argon2/pbkdf2, HMAC, key sizes, weak key sizes, IV/Nonce, static IV, Keystore, Keystore files, BouncyCastle, SpongyCastle, Conscrypt, weak random, SecureRandom, cipher instances, KeyGenerator, MessageDigest, Signature, KeyAgreement, certificate pinning, hash algorithms, key derivation, Base64/Hex encoding, encryption flags, crypto providers
+
+**Offensive**
+Attack surface, injection points, debug interfaces, exported activities/services/receivers/providers, deep links, intent filters, browsable, app links, custom URL schemes, file providers, root paths, setuid binaries, busybox usage, netcat usage, socat usage, reverse shells, curl pipes, cron jobs, init scripts, hooks (LD_PRELOAD), ptrace usage, memory injection, antidebug native, syscalls, memory corruption, format strings
+
+**Decryption**
+Hardcoded keys/IVs/salts, static passwords, decryption routines, key derivation, XOR keys, Base64/Hex decode, cipher init DECRYPT/ENCRYPT mode, `.doFinal` calls, MessageDigest, public key import, certificate loading, Keystore access, Android Keystore, weak crypto, ECB mode, deterministic, length extension, padding oracle, known plaintext, bit-flip attacks, CBC issues, key reuse
+
+**Native**
+Native libraries (.so), JNI functions, native syscalls, native crypto, anti-debug native, linked external libraries
+
+**Tracking**
+Google Analytics, Facebook SDK, Adjust, AppsFlyer, Mixpanel, Segment, Amplitude, Flurry, Sentry, Crashlytics, Branch, Braze/Appboy, OneSignal, LeanCloud, Bugly, Umeng, analytics IDs, advertising IDs, location SDKs, push SDKs
+
+**Database**
+SQLite, Shared Preferences, SQL keywords, Room ORM, Realm, GreenDAO, DB names, Firebase RTDB, Cloud Firestore, connection strings, encrypted DBs (SQLCipher), internal storage
+
+**Paths**
+/sdcard, /storage, /data, /system, /cache, /tmp, /proc, /dev, /mnt, /vendor, Android storage APIs, file extensions
+
+**Components**
+Activities, permissions count, exported components, intent filters, permissions used
+
+---
+
+## Advanced Features
+
+### Entropy Analysis
+
+```bash
+zodiac entropy app.apk
+```
+
+Computes Shannon entropy per file inside the APK. Values ≥ 7.5 typically indicate encrypted or packed data.
+
+### Risk Score
+
+```bash
+zodiac risk app.apk
+```
+
+Produces a 0–100 score based on weighted indicators with a verdict.
+
+### HTML Report
+
+```bash
+zodiac html app.apk
+```
+
+Generates a self-contained dark-themed HTML report — open with `termux-open`.
+
+### MITRE ATT&CK Mobile Mapping
+
+```bash
+zodiac mitre app.apk
+```
+
+Maps findings to ATT&CK Mobile techniques across Initial Access, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Collection, C2, Exfiltration, and Impact.
+
+### Batch Mode
+
+```bash
+zodiac batch ~/apks/
+```
+
+Analyzes all APKs in a directory and writes per-file results to a timestamped output folder.
+
+### VirusTotal (Opt-in)
+
+```bash
+export VT_API_KEY="your_api_key"
+zodiac vt app.apk
+```
+
+Queries VirusTotal by SHA256. No file is uploaded — hash lookup only.
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `ZODIAC_DIR` | `~/zodiac/apks` | APK storage directory |
+| `ZODIAC_WORK` | `~/zodiac/.cache` | Cache directory |
+| `VT_API_KEY` | — | VirusTotal API key |
+
+---
+
+## Examples
+
+```bash
+# Basic workflow
+zodiac install https://example.com/app.apk
 zodiac info app.apk
-
-Inspect the manifest
-
-zodiac manifest app.apk
-
-Check permissions
-
 zodiac permissions app.apk
-
-Extract URLs
-
-zodiac urls app.apk
-
-Search for secrets
-
-zodiac secrets app.apk
-
-Run a threat-oriented scan
-
-zodiac mal app.apk
-
-Run vulnerability-pattern analysis
-
-zodiac vuln app.apk
-
-Run the broader workflow
-
 zodiac hunt app.apk
 
-Generate a report
+# Focused analysis
+zodiac secrets app.apk
+zodiac mal app.apk
+zodiac crypto app.apk
+zodiac attack-surface app.apk
 
-zodiac report app.apk
+# Advanced
+zodiac risk app.apk
+zodiac entropy app.apk
+zodiac mitre app.apk
+zodiac html app.apk
 
----
-
-Examples
-
-Analyze a downloaded APK
-
-zodiac install https://example.org/application.apk
-
-Then:
-
-zodiac info application.apk
-zodiac manifest application.apk
-zodiac permissions application.apk
-
-Network-focused investigation
-
-zodiac urls application.apk
-zodiac ips application.apk
-zodiac domains application.apk
-zodiac api application.apk
-
-Security-focused investigation
-
-zodiac vuln application.apk
-zodiac crypto application.apk
-zodiac components application.apk
-zodiac native application.apk
-
-Custom search
-
-zodiac search application.apk "api[_-]?key"
-
-This is useful when a researcher wants to test a hypothesis that is not covered by the built-in detectors.
+# Custom search
+zodiac search app.apk 'firebase'
+zodiac search app.apk 'api_key.*'
+zodiac search app.apk 'https?://[a-z]+\.example\.com'
+```
 
 ---
 
-Scan Modes
+## Requirements
 
-"fast"
+**Core**
+- `bash` 4.0+
+- `unzip`
+- `strings` (binutils)
+- `grep`
+- `sha256sum` (coreutils)
 
-Designed for a quick first pass.
+**Optional**
+- `aapt` (Android SDK) — for manifest and permission parsing
+- `openssl` — for certificate inspection
+- `curl` — for downloads and VirusTotal
+- `jadx` or `apktool` — for decompilation
+- `whois` — for domain lookups
+- `xxd` or `hexdump` — for hex view
 
-Use it when:
+Termux install:
 
-- triaging many APKs
-- checking an unknown sample quickly
-- deciding whether deeper analysis is worthwhile
-
-zodiac fast sample.apk
-
----
-
-"hunt"
-
-A broader workflow intended for a more comprehensive first-pass review.
-
-zodiac hunt sample.apk
-
-It combines multiple analysis areas so the researcher does not need to execute every command manually.
-
----
-
-Individual Modules
-
-For focused investigations, individual commands are preferable.
-
-For example:
-
-zodiac crypto sample.apk
-
-is more targeted than running the complete workflow when the research question is specifically about cryptographic implementation.
+```bash
+pkg install -y unzip binutils coreutils openssl curl aapt whois
+```
 
 ---
 
-Detection Philosophy
+## Legal
 
-ZODIAC primarily uses static pattern-based analysis.
+Zodiac is a **static analysis tool**. It reads APK files and reports findings. It does not:
 
-That means a finding generally represents:
+- Modify, repackage, or resign APKs
+- Inject code or payloads
+- Exploit vulnerabilities
+- Bypass security controls at runtime
+- Communicate with external services unless you explicitly enable VirusTotal
 
-«“A security-relevant pattern was found.”»
-
-It does not automatically mean:
-
-«“The application is vulnerable.”»
-
-For example, finding:
-
-X509TrustManager
-
-does not by itself prove broken TLS validation.
-
-Likewise:
-
-PendingIntent
-
-does not by itself indicate an insecure "PendingIntent".
-
-And:
-
-Random()
-
-does not automatically mean cryptographically sensitive randomness is being used incorrectly.
-
-The tool is therefore best viewed as an evidence collection and triage system.
+**Use only on APKs you own or have explicit written permission to analyze.** Unauthorized analysis of applications may violate local laws and terms of service. The authors are not responsible for misuse.
 
 ---
 
-False Positives
+## License
 
-Static analysis naturally produces false positives.
-
-Examples include:
-
-Detector| Why it may be benign
-"X509TrustManager"| May implement correct certificate validation
-"PendingIntent"| Can be securely configured
-"Random()"| May be used for non-security purposes
-"ptrace()"| May be used for debugging or anti-debugging
-"mmap()"| Common legitimate native API
-"AES"| AES itself is not a vulnerability
-"BroadcastReceiver"| Normal Android functionality
-"WebView"| Common application component
-"Base64"| Encoding is not encryption
-"TrustManager"| Presence alone does not prove trust-all behavior
-"monitor" / "track"| Could describe legitimate analytics
-"encrypt"| Encryption can be completely legitimate
-
-Always investigate the surrounding code and application context before treating a match as a confirmed security issue.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-Reports
+## Contributing
 
-The report workflow is intended to turn analysis output into something easier to preserve and review.
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-Typical workflow:
-
-zodiac report sample.apk
-
-For larger investigations, keep the original APK and generated report together and record the APK SHA-256.
-
-Example:
-
-sha256sum sample.apk
-
-This allows the analysis to be tied to a specific file version.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Open a pull request
 
 ---
 
-Environment Variables
+## Author
 
-ZODIAC stores APKs and working data under the user's home directory by default.
+**Vandal**
 
-APK directory
-
-ZODIAC_DIR
-
-Default:
-
-~/zodiac/apks
-
-Example:
-
-export ZODIAC_DIR="$HOME/samples/apks"
-
-Working/cache directory
-
-ZODIAC_WORK
-
-Default:
-
-~/zodiac/.cache
-
-Example:
-
-export ZODIAC_WORK="$HOME/zodiac-work"
-
----
-
-Dependencies
-
-The core script is Bash-based and uses common Unix utilities.
-
-Typical dependencies include:
-
-bash
-coreutils
-grep
-sed
-awk
-find
-unzip
-file
-sha256sum
-curl
-
-Some functionality can make use of Android/reverse-engineering tooling when available, such as:
-
-aapt / aapt2
-jadx
-apktool
-
-Availability depends on the command being used and the host environment.
-
-ZODIAC does not require every optional reverse-engineering utility for its basic static analysis workflows.
-
----
-
-Recommended Workflow
-
-For an unfamiliar APK:
-
-                    ┌──────────────┐
-                    │    APK       │
-                    └──────┬───────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │     info     │
-                    └──────┬───────┘
-                           │
-            ┌──────────────┼──────────────┐
-            ▼              ▼              ▼
-        manifest       permissions      cert
-            │              │              │
-            └──────────────┼──────────────┘
-                           ▼
-                    ┌──────────────┐
-                    │     fast     │
-                    └──────┬───────┘
-                           │
-             ┌─────────────┼─────────────┐
-             ▼             ▼             ▼
-           net           secrets        mal
-             │             │             │
-             └─────────────┼─────────────┘
-                           ▼
-                    ┌──────────────┐
-                    │     vuln     │
-                    └──────┬───────┘
-                           │
-                           ▼
-                 Manual / Dynamic Review
-
-The important principle is simple:
-
-Automated findings → evidence → manual validation.
-
----
-
-Security Considerations
-
-ZODIAC may process APKs containing sensitive information, including:
-
-- API endpoints
-- tokens
-- credentials
-- private-key material
-- internal hostnames
-- personally identifiable information
-- proprietary application code
-
-Treat analysis output accordingly.
-
-Avoid uploading generated reports containing sensitive findings to public repositories.
-
----
-
-Responsible Use
-
-ZODIAC is intended for:
-
-- applications you own
-- applications you are authorized to analyze
-- malware-analysis research
-- security research environments
-- educational labs
-- CTFs and controlled testing environments
-
-Do not use the toolkit to access systems, accounts, services, or data without authorization.
-
-The presence of an analysis feature does not imply authorization to use it against third-party infrastructure.
-
----
-
-Limitations
-
-ZODIAC is deliberately lightweight and shell-based.
-
-It is not a replacement for a full mobile-security stack.
-
-It does not inherently provide:
-
-- complete program-path analysis
-- semantic vulnerability verification
-- dynamic instrumentation
-- runtime behavior monitoring
-- emulator-based behavioral analysis
-- complete decompilation by itself
-- guaranteed malware classification
-- proof that a detected secret is valid
-- proof that a detected pattern is exploitable
-
-For deeper investigations, combine its output with appropriate reverse-engineering and dynamic-analysis tools.
-
----
-
-Design Goals
-
-The project focuses on five principles:
-
-01 · Fast
-
-Common APK triage should require a small number of commands.
-
-02 · Portable
-
-The core should remain usable in ordinary Linux and Termux environments.
-
-03 · Transparent
-
-Detection patterns should be inspectable rather than hidden behind an opaque classification system.
-
-04 · Modular
-
-Researchers should be able to run one focused analysis instead of the entire toolkit.
-
-05 · Honest Results
-
-A pattern match should be presented as a lead for investigation—not automatically as a confirmed vulnerability.
-
----
-
-Project Structure
-
-A typical installation looks like:
-
-zodiac/
-├── zodiac.sh
-├── README.md
-├── LICENSE
-└── ...
-
-Runtime data is stored separately:
-
-~/zodiac/
-├── apks/
-└── .cache/
-
-This keeps downloaded samples and temporary analysis data outside the source tree.
-
----
-
-Roadmap
-
-Potential future development areas include:
-
-- [ ] JSON output
-- [ ] SARIF export
-- [ ] improved APK metadata normalization
-- [ ] configurable detection rules
-- [ ] per-rule confidence levels
-- [ ] rule suppression / allowlists
-- [ ] improved component correlation
-- [ ] better secret validation workflows
-- [ ] YARA integration
-- [ ] VirusTotal integration as an optional module
-- [ ] richer HTML reports
-- [ ] batch APK analysis
-- [ ] analysis result diffing
-- [ ] structured evidence collection
-- [ ] improved Android resource analysis
-
-The roadmap is intentionally focused on improving signal quality and reproducibility, rather than simply increasing the number of detection patterns.
-
----
-
-Contributing
-
-Contributions are welcome.
-
-Good contributions include:
-
-- bug fixes
-- portability improvements
-- improved regex rules
-- reduced false positives
-- new APK analysis modules
-- documentation
-- test cases
-- performance improvements
-
-When adding a detector, please document:
-
-1. What it detects
-2. Why the pattern is relevant
-3. Known false positives
-4. Expected input
-5. Example output
-6. Whether the finding is an indicator or a confirmed condition
-
-A good detection rule is not simply a large regex.
-
-A good detection rule produces useful evidence.
-
----
-
-Versioning
-
-Current release:
-
-ZODIAC 8.0.0
-
-The project uses semantic-style versioning for releases:
-
-MAJOR.MINOR.PATCH
-
----
-
-License
-
-Add your chosen license to "LICENSE" before publishing the repository.
-
-For example:
-
-MIT License
-
-or another license appropriate for your project.
-
----
-
-Final Note
-
-ZODIAC is designed to shorten the distance between:
-
-APK
- ↓
-Evidence
- ↓
-Indicators
- ↓
-Investigation
-
-It is intentionally a triage and analysis toolkit, not a claim that static pattern matching can replace a complete security assessment.
-
-If a detector finds something interesting, the next step is to inspect the evidence—not blindly trust the label.
-
----
-
-<p align="center">
-  <b>ZODIAC</b><br>
-  <sub>APK Reverse Engineering · Threat Intelligence · Security Analysis</sub>
-</p>
+- GitHub: [@Vandal](https://github.com/Vandal)
